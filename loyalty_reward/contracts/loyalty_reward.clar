@@ -6,6 +6,19 @@
 (define-map reward-expiration {address: principal, timestamp: uint} uint)
 
 
-;; Constants for reward tiers
+;; Constants
+(define-constant ERR_INVALID_AMOUNT (err u1))
+(define-constant ERR_INSUFFICIENT_REWARDS (err u2))
+(define-constant ERR_REWARDS_EXPIRED (err u3))
+
+;; Reward Tier Constants
 (define-constant SILVER_THRESHOLD u100)
 (define-constant GOLD_THRESHOLD u500)
+(define-constant REWARD_EXPIRATION_PERIOD u604800) ;; 1 week in seconds
+
+
+
+;; Maps
+
+
+
