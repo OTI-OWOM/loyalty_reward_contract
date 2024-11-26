@@ -12,6 +12,7 @@
 (define-constant ERR_INSUFFICIENT_REWARDS (err u2))
 (define-constant ERR_REWARDS_EXPIRED (err u3))
 (define-constant ERR_UNAUTHORIZED (err u4))
+(define-constant ERR_INVALID_USER (err u5))
 
 ;; Reward Tier Constants
 (define-constant SILVER_THRESHOLD u100)
@@ -25,6 +26,8 @@
 (define-read-only (get-rewards (user principal))
   (default-to u0 (map-get? rewards {address: user})))
 
+
+
 ;; Private Helper Functions
 (define-private (is-valid-amount (amount uint))
   (> amount u0))
@@ -36,4 +39,46 @@
           "silver"
           "bronze")))
 
+;; Public Functions
+(define-public (add-balance (amount uint))
+  (begin
+    (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+    (map-set balances {address: tx-sender} 
+             (+ (get-balance tx-sender) amount))
+     ;; Automatically accumulate rewards based on balance
+    (let ((current-rewards (get-rewards tx-sender)))
+      (map-set rewards {address: tx-sender} (+ current-rewards amount)))
+    (ok true)))
 
+    
+
+(define-map last-claim-block {address: principal} uint)
+
+(define-map last-claim-time {address: principal} uint)
+
+;; Define a constant for block time approximation (10 seconds per block)
+(define-constant BLOCK_TIME_SECONDS u10)
+
+;; Store the deployment block as a reference point
+(define-data-var deployment-block uint u0)
+
+(define-constant ERR_ALREADY_INITIALIZED (err u1))
+
+
+(define-public (transfer-rewards (to principal) (amount uint))
+  (begin
+    (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+    (asserts! (is-valid-amount (get-rewards tx-sender)) ERR_INSUFFICIENT_REWARDS)
+    (asserts! (is-valid-amount (get-balance to)) ERR_INVALID_USER)
+    (let ((current-rewards (get-rewards tx-sender)))
+      (asserts! (>= current-rewards amount) ERR_INSUFFICIENT_REWARDS)
+      ;; Deduct from sender's rewards and add to recipient's rewards
+      (map-set rewards {address: tx-sender} (- current-rewards amount))
+      (map-set rewards {address: to} (+ (get-rewards to) amount))
+      (ok true))))
+
+
+
+
+
+;; Public Functions
