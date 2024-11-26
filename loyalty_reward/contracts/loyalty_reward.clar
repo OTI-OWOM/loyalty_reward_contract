@@ -25,4 +25,15 @@
 (define-read-only (get-rewards (user principal))
   (default-to u0 (map-get? rewards {address: user})))
 
+;; Private Helper Functions
+(define-private (is-valid-amount (amount uint))
+  (> amount u0))
+
+(define-private (calculate-reward-tier (balance uint))
+  (if (>= balance GOLD_THRESHOLD)
+      "gold"
+      (if (>= balance SILVER_THRESHOLD)
+          "silver"
+          "bronze")))
+
 
