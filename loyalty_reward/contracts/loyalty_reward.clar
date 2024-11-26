@@ -5,6 +5,9 @@
 (define-map reward-history {address: principal, timestamp: uint} uint)
 (define-map reward-expiration {address: principal, timestamp: uint} uint)
 
+(define-map redemption-history {address: principal, timestamp: uint} uint)
+(define-map user-tier {address: principal} (string-ascii 10))
+
 
 ;; Constants
 (define-constant CONTRACT_OWNER tx-sender)
@@ -50,7 +53,6 @@
       (map-set rewards {address: tx-sender} (+ current-rewards amount)))
     (ok true)))
 
-    
 
 (define-map last-claim-block {address: principal} uint)
 
@@ -77,8 +79,10 @@
       (map-set rewards {address: to} (+ (get-rewards to) amount))
       (ok true))))
 
+;; Public Function: Update User Tier
+(define-public (update-user-tier)
+  (let ((balance (get-balance tx-sender)))
+    (let ((tier (calculate-reward-tier balance)))
+      (map-set user-tier {address: tx-sender} tier)
+      (ok tier))))
 
-
-
-
-;; Public Functions
