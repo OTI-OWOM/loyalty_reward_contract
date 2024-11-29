@@ -137,3 +137,28 @@
       block-height: stacks-block-height
     } 
     {data: data}))
+
+;; Allowance mapping
+(define-map allowances 
+  {owner: principal, spender: principal} 
+  uint)
+
+;; Approve spending of rewards
+(define-public (approve (spender principal) (amount uint))
+  (begin
+    (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+    (map-set allowances 
+      {owner: tx-sender, spender: spender} 
+      amount)
+    (ok true)))
+
+;; Transfer from with allowance
+(define-public (transfer-from (from principal) (to principal) (amount uint))
+  (let ((current-allowance (default-to u0 
+                            (map-get? allowances 
+                              {owner: from, spender: tx-sender}))))
+    (asserts! (>= current-allowance amount) (err u7))
+    (map-set allowances 
+      {owner: from, spender: tx-sender} 
+      (- current-allowance amount))
+    (transfer-rewards to amount)))
