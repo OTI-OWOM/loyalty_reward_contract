@@ -86,3 +86,15 @@
       (map-set user-tier {address: tx-sender} tier)
       (ok tier))))
 
+;; Ownership transfer
+(define-data-var contract-owner principal tx-sender)
+
+(define-public (transfer-ownership (new-owner principal))
+  (begin
+    (asserts! (is-contract-owner tx-sender) ERR_UNAUTHORIZED)
+    (var-set contract-owner new-owner)
+    (ok true)))
+
+;; Owner check helper
+(define-private (is-contract-owner (sender principal))
+  (is-eq sender (var-get contract-owner)))
