@@ -108,3 +108,17 @@
       (map-set balances {address: tx-sender} u0)
       (map-set rewards {address: tx-sender} u0)
       (ok total-balance)))) 
+
+
+(define-map tier-multiplier {tier: (string-ascii 10)} uint)
+
+(define-public (initialize-tier-multipliers)
+  (begin
+    (asserts! (is-contract-owner tx-sender) ERR_UNAUTHORIZED)
+    (map-set tier-multiplier {tier: "bronze"} u1)
+    (map-set tier-multiplier {tier: "silver"} u2)
+    (map-set tier-multiplier {tier: "gold"} u3)
+    (ok true)))
+
+(define-private (get-tier-multiplier (tier (string-ascii 10)))
+  (default-to u1 (map-get? tier-multiplier {tier: tier})))
