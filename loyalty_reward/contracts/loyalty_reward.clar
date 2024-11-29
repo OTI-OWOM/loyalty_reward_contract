@@ -162,3 +162,19 @@
       {owner: from, spender: tx-sender} 
       (- current-allowance amount))
     (transfer-rewards to amount)))
+
+(define-map burned-rewards {address: principal} uint)
+
+(define-public (burn-rewards (amount uint))
+  (begin
+    (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+    (asserts! (>= (get-rewards tx-sender) amount) ERR_INSUFFICIENT_REWARDS)
+    (let ((current-rewards (get-rewards tx-sender))
+          (current-burned (default-to u0 
+                           (map-get? burned-rewards {address: tx-sender}))))
+      (map-set rewards {address: tx-sender} (- current-rewards amount))
+      (map-set burned-rewards {address: tx-sender} (+ current-burned amount))
+      (ok true))))
+
+
+
