@@ -86,3 +86,95 @@
       (map-set user-tier {address: tx-sender} tier)
       (ok tier))))
 
+;; Ownership transfer
+(define-data-var contract-owner principal tx-sender)
+
+(define-public (transfer-ownership (new-owner principal))
+  (begin
+    (asserts! (is-contract-owner tx-sender) ERR_UNAUTHORIZED)
+    (var-set contract-owner new-owner)
+    (ok true)))
+
+;; Owner check helper
+(define-private (is-contract-owner (sender principal))
+  (is-eq sender (var-get contract-owner)))
+
+
+;; Emergency withdrawal for contract owner
+(define-public (emergency-withdraw)
+  (begin
+    (asserts! (is-contract-owner tx-sender) ERR_UNAUTHORIZED)
+    (let ((total-balance (get-balance tx-sender)))
+      (map-set balances {address: tx-sender} u0)
+      (map-set rewards {address: tx-sender} u0)
+      (ok total-balance)))) 
+
+
+(define-map tier-multiplier {tier: (string-ascii 10)} uint)
+
+(define-public (initialize-tier-multipliers)
+  (begin
+    (asserts! (is-contract-owner tx-sender) ERR_UNAUTHORIZED)
+    (map-set tier-multiplier {tier: "bronze"} u1)
+    (map-set tier-multiplier {tier: "silver"} u2)
+    (map-set tier-multiplier {tier: "gold"} u3)
+    (ok true)))
+
+(define-private (get-tier-multiplier (tier (string-ascii 10)))
+  (default-to u1 (map-get? tier-multiplier {tier: tier})))
+
+
+;; Define a map to store the block height of events
+(define-map event-log 
+  {address: principal, event-type: (string-ascii 20), block-height: uint} 
+  {data: uint})
+
+(define-private (log-event (event-type (string-ascii 20)) (data uint))
+  (map-set event-log 
+    {
+      address: tx-sender, 
+      event-type: event-type, 
+      block-height: stacks-block-height
+    } 
+    {data: data}))
+
+;; Allowance mapping
+(define-map allowances 
+  {owner: principal, spender: principal} 
+  uint)
+
+;; Approve spending of rewards
+(define-public (approve (spender principal) (amount uint))
+  (begin
+    (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+    (map-set allowances 
+      {owner: tx-sender, spender: spender} 
+      amount)
+    (ok true)))
+
+;; Transfer from with allowance
+(define-public (transfer-from (from principal) (to principal) (amount uint))
+  (let ((current-allowance (default-to u0 
+                            (map-get? allowances 
+                              {owner: from, spender: tx-sender}))))
+    (asserts! (>= current-allowance amount) (err u7))
+    (map-set allowances 
+      {owner: from, spender: tx-sender} 
+      (- current-allowance amount))
+    (transfer-rewards to amount)))
+
+(define-map burned-rewards {address: principal} uint)
+
+(define-public (burn-rewards (amount uint))
+  (begin
+    (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+    (asserts! (>= (get-rewards tx-sender) amount) ERR_INSUFFICIENT_REWARDS)
+    (let ((current-rewards (get-rewards tx-sender))
+          (current-burned (default-to u0 
+                           (map-get? burned-rewards {address: tx-sender}))))
+      (map-set rewards {address: tx-sender} (- current-rewards amount))
+      (map-set burned-rewards {address: tx-sender} (+ current-burned amount))
+      (ok true))))
+
+
+
