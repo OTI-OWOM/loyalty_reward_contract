@@ -122,3 +122,18 @@
 
 (define-private (get-tier-multiplier (tier (string-ascii 10)))
   (default-to u1 (map-get? tier-multiplier {tier: tier})))
+
+
+;; Define a map to store the block height of events
+(define-map event-log 
+  {address: principal, event-type: (string-ascii 20), block-height: uint} 
+  {data: uint})
+
+(define-private (log-event (event-type (string-ascii 20)) (data uint))
+  (map-set event-log 
+    {
+      address: tx-sender, 
+      event-type: event-type, 
+      block-height: stacks-block-height
+    } 
+    {data: data}))
