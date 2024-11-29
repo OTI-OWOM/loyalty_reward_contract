@@ -98,3 +98,13 @@
 ;; Owner check helper
 (define-private (is-contract-owner (sender principal))
   (is-eq sender (var-get contract-owner)))
+
+
+;; Emergency withdrawal for contract owner
+(define-public (emergency-withdraw)
+  (begin
+    (asserts! (is-contract-owner tx-sender) ERR_UNAUTHORIZED)
+    (let ((total-balance (get-balance tx-sender)))
+      (map-set balances {address: tx-sender} u0)
+      (map-set rewards {address: tx-sender} u0)
+      (ok total-balance)))) 
